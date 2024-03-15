@@ -4,8 +4,7 @@
 
 #[ink::contract]
 mod sam_os {
-    use ink::prelude::string::String;
-    use ink::prelude::string::ToString;
+    use ink::prelude::vec::Vec;
 
     use ink::storage::Mapping;
 
@@ -52,9 +51,9 @@ mod sam_os {
     /// The contracts result type.
     pub type Result<T> = core::result::Result<T, Error>;
     /// The type of an account (user | app)
-    type AccountType = String;
+    type AccountType = Vec<u8>;
     /// This type represents an IPFS address (CID)
-    type IpfsAddress = String;
+    type IpfsAddress = Vec<u8>;
 
     /// The SamaritanOS contract storage
     #[ink(storage)]
@@ -83,9 +82,9 @@ mod sam_os {
                     &caller,
                     &AccountInfo {
                         r#type: if r#type {
-                            "user".to_string()
+                            "user".as_bytes().to_vec()
                         } else {
-                            "application".to_string()
+                            "application".as_bytes().to_vec()
                         },
                         did_doc_ipfs_addr,
                     },
@@ -122,12 +121,15 @@ mod sam_os {
 
         /// Authenticate an account and return it DID document CID
         #[ink(message, payable)]
-        pub fn auth_account(&mut self) -> String {
+        pub fn auth_account(&mut self) -> Vec<u8> {
             // Get the contract caller
             let caller = Self::env().caller();
 
             if let Some(account_info) = self.accounts.get(&caller) {
-                return account_info.did_doc_ipfs_addr;
+                let mut return_bytes = account_info.did_doc_ipfs_addr;
+                return_bytes.push(b'#');
+                return_bytes.extend(account_info.r#type);
+                return return_bytes;
             }
 
             Default::default()
